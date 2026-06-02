@@ -4,6 +4,7 @@ import connectDb from "./Configs/connectDb.js"
 import cookieParser from "cookie-parser"
 import cors from "cors"
 import authRouter from "./routes/auth.route.js"
+import userRouter from "./routes/user.route.js"
 
 
 const app=express()
@@ -20,6 +21,7 @@ const PORT=process.env.PORT || 6000
 app.use(express.json())
 app.use(cookieParser())
 app.use("/api/auth", authRouter)
+app.use("/api/user",userRouter)
 
 app.listen(PORT,()=>{
   console.log(`server started at port ${PORT}`)
