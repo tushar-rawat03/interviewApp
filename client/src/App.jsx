@@ -1,7 +1,7 @@
 import {useEffect} from 'react'
 import { Route, Routes } from 'react-router-dom'
-import Home from './pages/home'
-import Auth from './pages/Auth';
+import Home from './pages/Home.jsx'
+import Auth from './pages/Auth.jsx';
 import axios from 'axios';
 import { useDispatch } from 'react-redux';
 import { setUserData } from './redux/userSlice';
