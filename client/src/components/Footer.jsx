@@ -83,9 +83,9 @@ function Footer() {
 
         .footer-desc {
           font-family: 'Lato', sans-serif;
-          font-weight: 300;
-          font-size: .88rem;
-          color: #3a3f52;
+          font-weight: 400;
+          font-size: .92rem;
+          color: #9ea3b8;        /* ✅ was #3a3f52 — now visible */
           max-width: 460px;
           margin: 0 auto 20px;
           line-height: 1.75;
@@ -94,7 +94,7 @@ function Footer() {
         .footer-copy {
           font-family: 'Lato', sans-serif;
           font-size: 11px;
-          color: #252830;
+          color: #555a6e;        /* ✅ was #252830 — now visible */
           letter-spacing: .04em;
           margin: 0;
         }
@@ -114,17 +114,21 @@ function Footer() {
           font-weight: 700;
           letter-spacing: .1em;
           text-transform: uppercase;
-          color: #2e3548;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.05);
+          color: #7a8099;        /* ✅ was #2e3548 — now visible */
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1);
           padding: 4px 12px;
           border-radius: 999px;
+          transition: color .2s, border-color .2s;
+        }
+        .footer-tag:hover {
+          color: #c8f135;
+          border-color: rgba(200,241,53,0.3);
         }
       `}</style>
 
       <div className="footer-root">
         <div className="footer-card">
-          {/* blobs */}
           <div
             className="footer-blob"
             style={{
