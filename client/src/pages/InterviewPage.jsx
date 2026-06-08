@@ -1,9 +1,7 @@
-import React from 'react'
 import {useState} from 'react'
 import Step1SetUp from '../components/Step1SetUp'
-import React, { useState } from "react";
-import Step2Interview from "./Step2Interview";
-import Step3Report from "./Step3Report";
+// import Step2Interview from "./Step2Interview";
+// import Step3Report from "./Step3Report";
 
 function InterviewPage() {
   const [step, setStep] = useState(1);

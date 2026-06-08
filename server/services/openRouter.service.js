@@ -9,18 +9,20 @@ export const askAi = async (messages) => {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "openai/gpt-4o-mini", // example model, adjust as needed
+        model: "openai/gpt-4o-mini",
         messages: messages,
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}, 
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
         },
       },
     );
-    const content= response?.data?.choices?.[0]?.message?.content;
-          if (!content || !content.trim()) {
+
+    const content = response?.data?.choices?.[0]?.message?.content;
+
+    if (!content || !content.trim()) {
       throw new Error("AI returned empty response.");
     }
 
@@ -30,4 +32,3 @@ export const askAi = async (messages) => {
     throw new Error("OpenRouter API Error");
   }
 };
-  
