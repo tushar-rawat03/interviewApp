@@ -9,8 +9,12 @@ import {
 } from "react-icons/fa";
 import axios from "axios";
 import { ServerUrl } from "../App";
+import { useDispatch, useSelector } from "react-redux";
+import { setUserData } from "../redux/userSlice";
 
 function Step1SetUp({ onStart }) {
+  const { userData } = useSelector((state) => state.user);
+  const dispatch = useDispatch(); // ✅ fix: was useDispatch (missing parentheses)
   const [role, setRole] = useState("");
   const [experience, setExperience] = useState("");
   const [mode, setMode] = useState("Technical");
@@ -43,6 +47,29 @@ function Step1SetUp({ onStart }) {
       console.log(error);
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  // ✅ fix: added closing }, fixed route name, added setUserData import
+  const handleStart = async () => {
+    setLoading(true);
+    try {
+      const result = await axios.post(
+        ServerUrl + "/api/interview/generate-question", // ✅ fix: was generate-questions
+        { role, experience, mode, resumeText, projects, skills },
+        { withCredentials: true },
+      );
+      console.log(result.data);
+      if (userData) {
+        dispatch(
+          setUserData({ ...userData, credits: result.data.creditsLeft }),
+        );
+      }
+      onStart(result.data);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false); // ✅ fix: moved to finally so it always runs
     }
   };
 
@@ -94,7 +121,6 @@ function Step1SetUp({ onStart }) {
           .s1-left { display: none; }
         }
 
-        /* LEFT PANEL */
         .s1-left {
           background: linear-gradient(145deg, rgba(200,241,53,0.07), rgba(200,241,53,0.03));
           border-right: 1px solid rgba(200,241,53,0.1);
@@ -148,7 +174,6 @@ function Step1SetUp({ onStart }) {
           color: #9ea3b8;
         }
 
-        /* RIGHT PANEL */
         .s1-right {
           background: #0d0f16;
           padding: 52px 44px;
@@ -160,7 +185,6 @@ function Step1SetUp({ onStart }) {
           margin: 0 0 32px;
         }
 
-        /* Input group */
         .s1-input-wrap {
           position: relative; margin-bottom: 16px;
         }
@@ -206,7 +230,6 @@ function Step1SetUp({ onStart }) {
         .s1-select:focus { border-color: rgba(200,241,53,0.4); }
         .s1-select option { background: #0d0f16; color: #e8eaf0; }
 
-        /* Upload zone */
         .s1-upload-zone {
           border: 2px dashed rgba(255,255,255,0.1);
           border-radius: 16px;
@@ -247,7 +270,6 @@ function Step1SetUp({ onStart }) {
           box-shadow: 0 0 16px rgba(200,241,53,0.2);
         }
 
-        /* Analysis result */
         .s1-analysis {
           background: rgba(200,241,53,0.04);
           border: 1px solid rgba(200,241,53,0.15);
@@ -277,7 +299,6 @@ function Step1SetUp({ onStart }) {
           font-size: .82rem; color: #9ea3b8;
         }
 
-        /* Start button */
         .s1-start-btn {
           width: 100%;
           background: #c8f135; color: #07090f;
@@ -330,7 +351,7 @@ function Step1SetUp({ onStart }) {
           transition={{ duration: 0.6 }}
           className="s1-card"
         >
-          {/* ── LEFT PANEL ── */}
+          {/* LEFT PANEL */}
           <motion.div
             initial={{ x: -60, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -344,7 +365,6 @@ function Step1SetUp({ onStart }) {
               Practice real interview scenarios powered by AI. Improve
               communication, technical skills, and confidence.
             </p>
-
             {[
               {
                 icon: <FaUserTie size={16} />,
@@ -373,7 +393,7 @@ function Step1SetUp({ onStart }) {
             ))}
           </motion.div>
 
-          {/* ── RIGHT PANEL ── */}
+          {/* RIGHT PANEL */}
           <motion.div
             initial={{ x: 60, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -382,7 +402,6 @@ function Step1SetUp({ onStart }) {
           >
             <h2 className="s1-right-title">Interview Setup</h2>
 
-            {/* Role input */}
             <div className="s1-input-wrap">
               <FaUserTie className="s1-input-icon" />
               <input
@@ -394,7 +413,6 @@ function Step1SetUp({ onStart }) {
               />
             </div>
 
-            {/* Experience input */}
             <div className="s1-input-wrap">
               <FaBriefcase className="s1-input-icon" />
               <input
@@ -406,7 +424,6 @@ function Step1SetUp({ onStart }) {
               />
             </div>
 
-            {/* Mode select */}
             <select
               value={mode}
               onChange={(e) => setMode(e.target.value)}
@@ -416,7 +433,6 @@ function Step1SetUp({ onStart }) {
               <option value="HR">HR Interview</option>
             </select>
 
-            {/* Resume upload */}
             {!analysisDone && (
               <motion.div
                 whileHover={{ scale: 1.01 }}
@@ -455,7 +471,6 @@ function Step1SetUp({ onStart }) {
               </motion.div>
             )}
 
-            {/* Analysis result */}
             {analysisDone && (
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
@@ -463,7 +478,6 @@ function Step1SetUp({ onStart }) {
                 className="s1-analysis"
               >
                 <p className="s1-analysis-title">✓ Resume Analyzed</p>
-
                 {projects.length > 0 && (
                   <>
                     <p className="s1-analysis-label">Projects</p>
@@ -474,7 +488,6 @@ function Step1SetUp({ onStart }) {
                     </ul>
                   </>
                 )}
-
                 {skills.length > 0 && (
                   <>
                     <p className="s1-analysis-label">Skills</p>
@@ -488,20 +501,11 @@ function Step1SetUp({ onStart }) {
               </motion.div>
             )}
 
-            {/* Start button */}
+            {/* ✅ fix: onClick now calls handleStart instead of inline onStart */}
             <button
               className="s1-start-btn"
-              disabled={!role || !experience}
-              onClick={() =>
-                onStart({
-                  role,
-                  experience,
-                  mode,
-                  skills,
-                  projects,
-                  resumeText,
-                })
-              }
+              disabled={!role || !experience || loading}
+              onClick={handleStart}
             >
               {loading ? "Starting..." : "Start Interview →"}
             </button>
