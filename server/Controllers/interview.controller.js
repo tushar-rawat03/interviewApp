@@ -44,11 +44,12 @@ Return strictly JSON:
       { role: "user", content: resumeText },
     ];
 
-    const aiResponse = await askAi(messages);
+    const aiResponse = await askAi(messages, true);
 
     let parsed;
     try {
-      parsed = JSON.parse(aiResponse);
+      const cleaned = aiResponse.replace(/```json|```/g, "").trim();
+      parsed = JSON.parse(cleaned);
     } catch (err) {
       parsed = { role: "", experience: "", projects: [], skills: [] };
     }
@@ -71,7 +72,6 @@ Return strictly JSON:
   }
 };
 
-// ✅ fix: added export, changed const to let, fixed askAi typo, fixed user.credits typo
 export const generateQuestion = async (req, res) => {
   try {
     let { role, experience, mode, resumeText, projects, skills } = req.body;
@@ -121,18 +121,15 @@ Resume:${safeResume}
     const messages = [
       {
         role: "system",
-        content: `You are an interviewer. Act like a real human conducting a professional interview. 
-Use simple, natural English. Generate exactly five interview questions.
+        content: `You are an interviewer conducting a professional interview.
+Use simple, natural English.
 
-Strict rules:
-- Each question must contain between 15 and 25 words.
-- Each question must be a single complete sentence.
-- Do not number the questions.
-- Do not include explanations.
-- Do not add extra text before or after.
-- One question per line.
-- Use simple, conversational language.
-- Questions should feel practical and realistic.
+Generate exactly five interview questions based on the candidate's role, experience, projects, skills, and resume details.
+
+Rules for each question:
+- Between 15 and 25 words.
+- A single complete sentence.
+- Simple, conversational language, practical and realistic.
 
 Difficulty progression:
 Question 1 → easy
@@ -141,23 +138,50 @@ Question 3 → medium
 Question 4 → medium
 Question 5 → hard
 
-Make questions based on the candidate's role, experience, projects, skills, and resume details.`,
+Return ONLY a valid JSON object in this exact format, with no extra text:
+
+{
+  "questions": [
+    "question 1 text",
+    "question 2 text",
+    "question 3 text",
+    "question 4 text",
+    "question 5 text"
+  ]
+}`,
       },
       { role: "user", content: userPrompt },
     ];
 
-    // ✅ fix: was "message" (undefined variable), should be "messages"
-    const aiResponse = await askAi(messages);
+    const aiResponse = await askAi(messages, true);
 
     if (!aiResponse || !aiResponse.trim()) {
       return res.status(500).json({ message: "AI returned empty response." });
     }
 
-    const questionsArray = aiResponse
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      .slice(0, 5);
+    console.log("RAW AI RESPONSE:", aiResponse);
+
+    let questionsArray;
+    try {
+      const cleaned = aiResponse.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(cleaned);
+
+      if (!parsed.questions || !Array.isArray(parsed.questions)) {
+        throw new Error("Missing 'questions' array in AI response.");
+      }
+
+      questionsArray = parsed.questions
+        .map((q) => String(q).trim())
+        .filter((q) => q.length > 0)
+        .slice(0, 5);
+    } catch (err) {
+      console.error("Failed to parse AI response:", err.message, aiResponse);
+      return res.status(500).json({
+        message: "AI failed to generate questions in the correct format.",
+      });
+    }
+
+    console.log("PARSED QUESTIONS:", questionsArray);
 
     if (questionsArray.length === 0) {
       return res
@@ -165,7 +189,6 @@ Make questions based on the candidate's role, experience, projects, skills, and 
         .json({ message: "AI failed to generate questions." });
     }
 
-    // ✅ fix: was "user.credit" (typo), should be "user.credits"
     user.credits -= 50;
     await user.save();
 
@@ -177,8 +200,9 @@ Make questions based on the candidate's role, experience, projects, skills, and 
       resumeText: safeResume,
       questions: questionsArray.map((q, index) => ({
         question: q,
-        difficulty: ["easy", "easy", "medium", "medium", "hard"][index],
-        timeLimit: [60, 60, 90, 90, 120][index],
+        difficulty:
+          ["easy", "easy", "medium", "medium", "hard"][index] || "medium",
+        timeLimit: [60, 60, 90, 90, 120][index] || 90,
       })),
     });
 
@@ -271,8 +295,7 @@ Return ONLY valid JSON in this format:
       },
     ];
 
-    // ✅ fix: was "askAI" (wrong casing), should be "askAi"
-    const aiResponse = await askAi(messages);
+    const aiResponse = await askAi(messages, true);
 
     if (!aiResponse || !aiResponse.trim()) {
       return res.status(500).json({ message: "AI returned empty response." });
@@ -280,7 +303,6 @@ Return ONLY valid JSON in this format:
 
     let evaluation;
     try {
-      // ✅ fix: strip markdown code blocks before parsing
       const cleaned = aiResponse.replace(/```json|```/g, "").trim();
       evaluation = JSON.parse(cleaned);
     } catch (err) {
@@ -358,5 +380,63 @@ export const finishInterview = async (req, res) => {
     return res
       .status(500)
       .json({ message: "Server error.", error: error.message });
+  }
+};
+
+export const getMyInterview = async (req, res) => {
+  try {
+    const interviews = await Interview.find({ userId: req.userId })
+      .sort({ createdAt: -1 })
+      .select("role experience mode finalScore status createdAt");
+
+    return res.status(200).json(interviews);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: `failed to find currentUser Interview ${error}` });
+  }
+};
+
+export const getInterviewReport = async (req, res) => {
+  try {
+    const interview = await Interview.findById(req.params.id);
+
+    if (!interview) {
+      return res.status(404).json({ message: "Interview not found" });
+    }
+
+    const totalQuestions = interview.questions.length;
+
+    let totalScore = 0;
+    let totalConfidence = 0;
+    let totalCommunication = 0;
+    let totalCorrectness = 0;
+
+    interview.questions.forEach((q) => {
+      totalScore += q.score || 0;
+      totalConfidence += q.confidence || 0;
+      totalCommunication += q.communication || 0;
+      totalCorrectness += q.correctness || 0;
+    });
+
+    const avgConfidence = totalQuestions ? totalConfidence / totalQuestions : 0;
+    const avgCommunication = totalQuestions
+      ? totalCommunication / totalQuestions
+      : 0;
+    const avgCorrectness = totalQuestions
+      ? totalCorrectness / totalQuestions
+      : 0;
+
+    return res.json({
+      finalScore: interview.finalScore,
+      confidence: Number(avgConfidence.toFixed(1)),
+      communication: Number(avgCommunication.toFixed(1)),
+      correctness: Number(avgCorrectness.toFixed(1)),
+      questionWiseScore: interview.questions,
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: `failed to find currentUser interview ${error}` });
   }
 };
