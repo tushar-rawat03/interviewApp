@@ -3,8 +3,8 @@ import axios from "axios";
 import { motion } from "motion/react";
 import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa";
 import { BsArrowRight, BsRobot } from "react-icons/bs";
-import maleVideo from "../assets/Videos/videos/male-ai.mp4";
-import femaleVideo from "../assets/Videos/videos/female-ai.mp4";
+import maleVideo from "../assets/Videos/Videos/male-ai.mp4";
+import femaleVideo from "../assets/Videos/Videos/female-ai.mp4";
 import Timer from "./Timer"; // adjust path as needed
 import { ServerUrl } from "../App";
 
